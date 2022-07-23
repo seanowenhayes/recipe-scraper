@@ -1,17 +1,26 @@
-import puppeteer, {
-  Browser,
-} from "https://deno.land/x/puppeteer@14.1.1/mod.ts";
+import puppeteer, { Page } from "https://deno.land/x/puppeteer@14.1.1/mod.ts";
+import { EventEmitter } from "https://deno.land/x/event@2.0.0/mod.ts";
+
 import { Config } from "../index.ts";
 import { extractLinks } from "./extractions.ts";
 
-export class Crawler {
+type Events = {
+  start: [string, Date];
+  crawled: [string];
+  info: [string, string];
+  error: [string];
+  finish: [string[], Date];
+};
+
+export class Crawler extends EventEmitter<Events> {
   #crawl;
   #crawler;
   #toCrawl: Array<string> = [];
   #crawled: Array<string> = [];
-  #browser?: Browser;
+  #page?: Page;
 
   constructor(config: Config) {
+    super();
     this.#crawl = config.crawl;
     this.#crawler = config.crawler;
   }
@@ -19,7 +28,7 @@ export class Crawler {
   #addUrls(urls: string[]) {
     urls.forEach((url) => {
       if (this.#crawled.includes(url)) {
-        // TODO: emit info duplicate url
+        this.emit("info", "Duplicate url", url);
       } else {
         this.#toCrawl.push(url);
       }
@@ -28,8 +37,8 @@ export class Crawler {
 
   async #doCrawl(url: string) {
     this.#crawled.push(url);
-    if (this.#browser) {
-      const page = await this.#browser.newPage();
+    if (this.#page) {
+      const page = this.#page;
       await page.goto(url);
 
       const allHrefs = await Promise.all(
@@ -48,14 +57,18 @@ export class Crawler {
       this.#addUrls(allHrefs.flat());
       const nextUrl = this.#toCrawl.pop();
       nextUrl && await this.#doCrawl(nextUrl);
+      this.emit("crawled", url);
     } else {
-      // TODO: emit error browser not initialised.
+      this.emit("error", "Browser was not initialised");
     }
   }
 
   async crawl() {
-    this.#browser = await puppeteer.launch(this.#crawler.launchConfig);
+    this.emit("start", this.#crawl.startUrl, new Date());
+    const browser = await puppeteer.launch(this.#crawler.launchConfig);
+    this.#page = await browser.newPage();
     await this.#doCrawl(this.#crawl.startUrl);
-    await this.#browser.close();
+    await browser.close();
+    this.emit("finish", this.#crawled, new Date());
   }
 }
