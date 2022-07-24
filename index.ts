@@ -1,29 +1,4 @@
-import { Crawler } from "./lib/crawler.ts";
-
-interface Extractor {
-  shouldExtract: (pageUrl: string) => boolean;
-}
-export interface LinkExtractor extends Extractor {
-  linkExtraction: string;
-}
-
-export interface DetailExtractor extends Extractor {
-  details: {
-    [key: string]: string;
-  };
-}
-export interface Config {
-  crawl: {
-    startUrl: string;
-    linkExtractors: LinkExtractor[];
-    detailExtractor: DetailExtractor;
-  };
-  crawler: {
-    launchConfig: {
-      headless: boolean;
-    };
-  };
-}
+import { Config, Crawler } from "./mod.ts";
 
 const config: Config = {
   crawl: {

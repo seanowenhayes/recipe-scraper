@@ -1,8 +1,33 @@
 import puppeteer, { Page } from "https://deno.land/x/puppeteer@14.1.1/mod.ts";
 import { EventEmitter } from "https://deno.land/x/event@2.0.0/mod.ts";
 
-import { Config } from "../index.ts";
-import { extractLinks } from "./extractions.ts";
+import { extractLinks } from "./lib/extractions.ts";
+
+interface Extractor {
+  shouldExtract: (pageUrl: string) => boolean;
+}
+export interface LinkExtractor extends Extractor {
+  linkExtraction: string;
+}
+
+export interface DetailExtractor extends Extractor {
+  details: {
+    [key: string]: string;
+  };
+}
+
+export interface Config {
+  crawl: {
+    startUrl: string;
+    linkExtractors: LinkExtractor[];
+    detailExtractor: DetailExtractor;
+  };
+  crawler: {
+    launchConfig: {
+      headless: boolean;
+    };
+  };
+}
 
 type Events = {
   data: [Record<string, string>];
@@ -77,9 +102,9 @@ export class Crawler extends EventEmitter<Events> {
       await page.goto(url);
       await this.#extractLinks();
       await this.#extractDetails();
+      this.emit("crawled", url);
       const nextUrl = this.#toCrawl.pop();
       nextUrl && await this.#doCrawl(nextUrl);
-      this.emit("crawled", url);
     } else {
       this.emit("error", "Page was not initialised");
     }
