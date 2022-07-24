@@ -96,17 +96,22 @@ export class Crawler extends EventEmitter<Events> {
   }
 
   async #doCrawl(url: string) {
-    this.#crawled.push(url);
-    if (this.#page) {
-      const page = this.#page;
-      await page.goto(url);
-      await this.#extractLinks();
-      await this.#extractDetails();
-      this.emit("crawled", url);
+    try {
+      this.#crawled.push(url);
+      if (this.#page) {
+        const page = this.#page;
+        await page.goto(url);
+        await this.#extractLinks();
+        await this.#extractDetails();
+        this.emit("crawled", url);
+      } else {
+        this.emit("error", "Page was not initialised");
+      }
+    } catch (error) {
+      this.emit("error", error.toString());
+    } finally {
       const nextUrl = this.#toCrawl.pop();
       nextUrl && await this.#doCrawl(nextUrl);
-    } else {
-      this.emit("error", "Page was not initialised");
     }
   }
 

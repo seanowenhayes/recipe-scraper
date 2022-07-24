@@ -1,5 +1,5 @@
 {
     "tasks": {
-        "run": "PUPPETEER_PRODUCT=firefox deno run -A --unstable index.ts"
+        "run": "PUPPETEER_PRODUCT=firefox deno run -A --unstable example.ts"
     }
 }

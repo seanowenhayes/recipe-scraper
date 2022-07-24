@@ -1,6 +1,6 @@
 # Recipe Scraper
 
-A simple scaraper made for scraping recipes but not limited to such.
+A simple scraper made for scraping recipes but not limited to such.
 
 ## Idea
 Use puppeteer to crawl using an actual browser and have events that inform of the status of the call.
