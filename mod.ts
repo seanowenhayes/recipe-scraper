@@ -26,6 +26,7 @@ export interface Config {
     launchConfig: {
       headless: boolean;
     };
+    politeness?: number;
   };
 }
 
@@ -111,7 +112,12 @@ export class Crawler extends EventEmitter<Events> {
       this.emit("error", error.toString());
     } finally {
       const nextUrl = this.#toCrawl.pop();
-      nextUrl && await this.#doCrawl(nextUrl);
+      if (nextUrl) {
+        await new Promise((resolve) =>
+          setTimeout(resolve, this.#crawler.politeness || 1000)
+        );
+        await this.#doCrawl(nextUrl);
+      }
     }
   }
 
