@@ -5,6 +5,7 @@ import { Config } from "../index.ts";
 import { extractLinks } from "./extractions.ts";
 
 type Events = {
+  data: [Record<string, string>];
   start: [string, Date];
   crawled: [string];
   info: [string, string];
@@ -35,31 +36,52 @@ export class Crawler extends EventEmitter<Events> {
     });
   }
 
+  async #extractLinks() {
+    const page = this.#page as Page;
+    const allHrefs = await Promise.all(
+      this.#crawl.linkExtractors.map((extractor) =>
+        new Promise((resolve) => {
+          if (extractor.shouldExtract(page.url())) {
+            resolve(extractLinks({
+              page,
+              expression: extractor.linkExtraction,
+            }));
+          }
+          resolve([] as string[]);
+        })
+      ),
+    ) as string[];
+    this.#addUrls(allHrefs.flat());
+  }
+
+  async #extractDetails() {
+    const page = this.#page as Page;
+    const shouldExtract = this.#crawl.detailExtractor.shouldExtract(page.url());
+    if (shouldExtract) {
+      const details = this.#crawl.detailExtractor.details;
+      const extraction = await Promise.all(
+        Object.keys(details).map(async (key) => {
+          const result = await page.$(details[key]);
+          const detail = await result?.evaluate((div) => div.innerText);
+          return [key, detail];
+        }),
+      );
+      this.emit("data", Object.fromEntries(extraction));
+    }
+  }
+
   async #doCrawl(url: string) {
     this.#crawled.push(url);
     if (this.#page) {
       const page = this.#page;
       await page.goto(url);
-
-      const allHrefs = await Promise.all(
-        this.#crawl.linkExtractors.map((extractor) =>
-          new Promise((resolve) => {
-            if (extractor.shouldExtract(page.url())) {
-              resolve(extractLinks({
-                page,
-                expression: extractor.linkExtraction,
-              }));
-            }
-            resolve([] as string[]);
-          })
-        ),
-      ) as string[];
-      this.#addUrls(allHrefs.flat());
+      await this.#extractLinks();
+      await this.#extractDetails();
       const nextUrl = this.#toCrawl.pop();
       nextUrl && await this.#doCrawl(nextUrl);
       this.emit("crawled", url);
     } else {
-      this.emit("error", "Browser was not initialised");
+      this.emit("error", "Page was not initialised");
     }
   }
 
