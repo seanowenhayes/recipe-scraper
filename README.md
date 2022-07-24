@@ -16,6 +16,11 @@ The way to configure a crawler.
     * `detailExtractor`
         * `details` key value map key is key of data extarcted and the value is a css selector to get the text to be extracted by that key
         * `shouldExtract` takes the page url and decides if to extract data or not
+* `crawler`
+    * `launchConfig`
+        * `headless` boolean - show brawser or not
+    * `politeness` number - milliseconds to wait between each page
+        * defaults to 1000 aka a second
 
 ## Events
 * `data` fires witha record of data extracted.
@@ -23,5 +28,5 @@ The way to configure a crawler.
 * `crawled` fires with the url of the crawled page
 * `info` tag and message, just misscelaneous info
 * `error` fires when something unexpected happens
-* `finnish` fires at the end with all crawled urls and the date finished
+* `finish` fires at the end with all crawled urls and the date finished
 
